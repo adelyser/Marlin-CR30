@@ -2622,7 +2622,13 @@ void Stepper::_set_position(const int32_t &a, const int32_t &b, const int32_t &c
   #if CORE_IS_XY
     // corexy positioning
     // these equations follow the form of the dA and dB equations on https://www.corexy.com/theory.html
-    count_position.set(a + b, CORESIGN(a - b), c);
+    #if BOTH(BELTPRINTER, BELT_KINEMATICS_DEV)
+      // TODO: Incorporate C into B. This may be done ahead of this method
+      // and then this placeholder can be removed.
+      count_position.set(a + b, CORESIGN(a - b), c);
+    #else
+      count_position.set(a + b, CORESIGN(a - b), c);
+    #endif
   #elif CORE_IS_XZ
     // corexz planning
     count_position.set(a + c, b, CORESIGN(a - c));

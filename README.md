@@ -10,6 +10,38 @@
 Additional documentation can be found at the [Marlin Home Page](https://marlinfw.org/).
 Please test this firmware and let us know if it misbehaves in any way. Volunteers are standing by!
 
+## 3D Print Mill Kinematics
+
+Historically belt printers have interpreted the X Y Z parameters as referring to the positions of the XY gantry in its own plane, and the Z belt position in its own plane. As a result, extra processing has been required to produce G-code suitable for the scheme. In the past, this was also the case for SCARA and Delta printers. Slicers have started to fall in line with the de-facto standard, so the time is nigh to correct the kinematics.
+
+There are two components to the problem:
+
+  - __The slicer__ needs to produce G-code that aligns properly to the belt / gantry, but with supports as if the belt was the bottom of the model. However, the slicer has to rotate the solid model and generated support geometry together by the machine angle (_e.g._, 45°) before slicing 'as usual' in the Z plane.
+
+  - __The firmware__ needs to know what Y coordinate corresponds to Z0 before it starts the print. The firmware unfortunately can't easily guess. The "height of the first layer" on this machine is semi-meaningless, because it's guaranteed to keep drawing lines on the belt at some regular height throughout the print, and babystepping might be a very regular need. We *could guess* by using the volume what the height is supposed to be off of the belt, and use that to tune the relationship between Y0 and Z0.
+
+  How is Y related to Z in the G-code and why is this important? All prints, even on a belt, will start with Z0 and then will continue with Z at the first layer height. Since a model may be sliced anywhere in the Y space, we need to know which Y position it "starts at" and seed the kinematics appropriately.
+
+  Anyway, the thing is.... Once the kinematics or workspace offset are seeded, the Y and Z axes need to be considered together before applying Core kinematics and conversion into steps. It gets a tiny bit tricky, but shouldn't be too impossible to follow. The formula is applied in the same location as the CoreXY stuff:
+
+    1. Convert Y and Z inputs into YB and C, where YB is the Y position of the XY gantry in its own plane.
+    2. Hand YB over to CoreXY kinematics where Y would normally go.
+    3. For babystepping of "the squish side" just allowing direct Y adjustment is enough. No other babystepping is needed.
+
+  The formula to convert for Y and Z into YB and C is... Notes!
+    - Cartesion `Y0 Z0` converts to `YB0 C0`. The "YB0 offset" is the adjustment made to the YB0 position, which will keep the squished side against the belt, even as the G-code Y position is going ever-downward, or ever-upward. Figure out which way is more correct. I assume Y goes downward. (Maybe both angular variants can be supported with extra `G333` parameters. Why 333? Because the Belt of Orion...)
+    - For simplicity the YB0 offset simply corresponds to the current Z position, so 'Z' can be taken as ruling over YB0. This could be expressed as a steps value which is adjusted whenever Z is changed, or it can simply be based on current C steps with a clever formula.
+    - Note that when YB is at the machine native home point (0), it's as close to the belt as it can get (though, this could be usefully adjusted with a Y home offset) so it's at the minimum the Z layer height.
+    - The YB position alone determines the height of the nozzle over the belt, hence the actual "squish level" on the belt side of the model. For these purposes it's better to think of this as "the belt side" rather than the bottom.
+    - So, how much should the YB coordinate be messed with in relation to Z?
+    - YB = Y - Z * sin(angle) ; C = Z * (1 / sin(angle))
+    - The ratio between Z motion and Belt motion is (1 / sin(angle)) => Hypot (YB) / Adjacent (Z)
+    - For every +1mm that C moves, YB needs to be offset by -1.414mm.
+    - For every +1.414mm that YB moves, C needs to be offset by -1mm.
+    - Position `Y0 Z10` is `YB... C14.14`
+
+  I suggest requiring a G-code that both enables *correct* Belt Cartesian Kinematics (BCK), but also sets the Y0/Z0 relationship at the same time. Assuming BCK is the default, the slicer could easily set this value with an existing command like `G92 Y123.2`. If BCK needs to be enabled, maybe a Y offset could be included.
+
 ## Marlin 2.0 Bugfix Branch
 
 __Not for production use. Use with caution!__

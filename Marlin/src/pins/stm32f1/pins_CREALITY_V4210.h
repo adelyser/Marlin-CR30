@@ -37,8 +37,6 @@
   #define DEFAULT_MACHINE_NAME "3DPrintMill"
 #endif
 
-#define BOARD_NO_NATIVE_USB
-
 //
 // EEPROM
 //
