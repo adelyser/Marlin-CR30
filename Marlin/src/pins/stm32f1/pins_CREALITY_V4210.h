@@ -70,7 +70,7 @@
 //
 // Servos
 //
-#define SERVO0_PIN                          PB0   // BLTouch OUT
+//#define SERVO0_PIN                          PB0   // BLTouch OUT
 
 //
 // Limit Switches
@@ -79,7 +79,7 @@
 #define Y_STOP_PIN                          PA7
 #define Z_STOP_PIN                          PA5
 
-#define Z_MIN_PROBE_PIN                     PA5   // BLTouch IN
+//#define Z_MIN_PROBE_PIN                     PB1   // BLTouch IN
 
 //
 // Filament Runout Sensor
@@ -203,4 +203,20 @@
 
   #define BEEPER_PIN                        PA5
 
+#endif
+
+#if HAS_TMC_UART
+  #define X_SERIAL_TX_PIN                   PB0
+  #define X_SERIAL_RX_PIN                   PB0
+
+  #define Y_SERIAL_TX_PIN                   PB1
+  #define Y_SERIAL_RX_PIN                   PB1
+
+  #define Z_SERIAL_TX_PIN                   PA13
+  #define Z_SERIAL_RX_PIN                   PA13
+
+  #define E0_SERIAL_TX_PIN                  PA14
+  #define E0_SERIAL_RX_PIN                  PA14
+
+  #define TMC_BAUD_RATE                    19200
 #endif
